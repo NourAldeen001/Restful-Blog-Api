@@ -42,9 +42,35 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleCommentNotFound(
+            CommentNotFoundException ex,
+            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponseDTO.builder()
+                        .status(404)
+                        .message(ex.getMessage())
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
+    @ExceptionHandler(CommentNotBelongsToPostException.class)
+    public ResponseEntity<ErrorResponseDTO> handleCommentNotBelongsToPost(
+            CommentNotBelongsToPostException ex,
+            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponseDTO.builder()
+                        .status(400)
+                        .message(ex.getMessage())
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
     // Validation errors
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleParamEmpty(
+    public ResponseEntity<Map<String, Object>> handleGlobalExceptions(
             MethodArgumentNotValidException ex,
             HttpServletRequest request) {
 
