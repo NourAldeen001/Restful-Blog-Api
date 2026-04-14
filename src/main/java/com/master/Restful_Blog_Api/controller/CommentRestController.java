@@ -12,6 +12,7 @@ import com.master.Restful_Blog_Api.mapper.CommentMapper;
 import com.master.Restful_Blog_Api.repository.UserRepository;
 import com.master.Restful_Blog_Api.service.CommentService;
 import com.master.Restful_Blog_Api.service.PostService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,12 +42,12 @@ public class CommentRestController {
                                                                     @RequestParam(defaultValue = "0") int page,
                                                                     @RequestParam(defaultValue = "10") int size,
                                                                     @RequestParam(defaultValue = "createdAt") String sortBy,
-                                                                    @RequestParam(defaultValue = "desc") String sorDir) {
+                                                                    @RequestParam(defaultValue = "desc") String sortDir) {
         // Verify post exists
         postService.getPostById(postId);
 
         // Build Sort
-        Sort sort = sorDir.equalsIgnoreCase("asc")
+        Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
 
@@ -96,7 +97,7 @@ public class CommentRestController {
 
     @PostMapping("/{postId}/comments")
     public ResponseEntity<CommentDTO> addComment(@PathVariable Long postId,
-                                                 @RequestBody CreateCommentRequest createCommentRequest){
+                                                 @Valid @RequestBody CreateCommentRequest createCommentRequest){
 
         Post post = postService.getPostById(postId);
 
@@ -119,7 +120,7 @@ public class CommentRestController {
     @PutMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<CommentDTO> updateComment(@PathVariable Long postId,
                                                     @PathVariable Long commentId,
-                                                    @RequestBody UpdateCommentRequest updateCommentRequest) {
+                                                    @Valid @RequestBody UpdateCommentRequest updateCommentRequest) {
         // Verify post exists
         postService.getPostById(postId);
 
