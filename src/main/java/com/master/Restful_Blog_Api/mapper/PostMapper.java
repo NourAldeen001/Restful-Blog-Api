@@ -4,9 +4,9 @@ import com.master.Restful_Blog_Api.dto.CreatePostRequest;
 import com.master.Restful_Blog_Api.dto.PostDTO;
 import com.master.Restful_Blog_Api.dto.UpdatePostRequest;
 import com.master.Restful_Blog_Api.entity.Post;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 public class PostMapper {
 
     public PostDTO toPostDTO(Post post) {
