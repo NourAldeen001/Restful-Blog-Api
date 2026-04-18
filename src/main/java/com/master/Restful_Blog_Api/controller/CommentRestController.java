@@ -9,7 +9,6 @@ import com.master.Restful_Blog_Api.entity.Post;
 import com.master.Restful_Blog_Api.entity.User;
 import com.master.Restful_Blog_Api.exception.CommentNotBelongsToPostException;
 import com.master.Restful_Blog_Api.mapper.CommentMapper;
-import com.master.Restful_Blog_Api.repository.UserRepository;
 import com.master.Restful_Blog_Api.service.CommentService;
 import com.master.Restful_Blog_Api.service.PostService;
 import jakarta.validation.Valid;
@@ -20,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,8 +34,6 @@ public class CommentRestController {
     private final CommentMapper commentMapper;
 
     private final PostService postService;
-
-    private final UserRepository userRepository;
 
     @GetMapping("/{postId}/comments")
     public ResponseEntity<PagedResponse<CommentDTO>> getAllComments(@PathVariable Long postId,
@@ -97,19 +95,15 @@ public class CommentRestController {
 
     @PostMapping("/{postId}/comments")
     public ResponseEntity<CommentDTO> addComment(@PathVariable Long postId,
-                                                 @Valid @RequestBody CreateCommentRequest createCommentRequest){
+                                                 @Valid @RequestBody CreateCommentRequest createCommentRequest,
+                                                 @AuthenticationPrincipal User currentUser){
 
         Post post = postService.getPostById(postId);
 
         Comment comment = commentMapper.toEntity(createCommentRequest);
 
         comment.setPost(post);
-
-        User authorComment = userRepository.findById(2L)
-                .orElseThrow(() -> new RuntimeException("Test user not found"));
-
-        authorComment.setId(2L);
-        comment.setAuthor(authorComment);
+        comment.setAuthor(currentUser);
 
         Comment saved = commentService.addComment(comment);
 

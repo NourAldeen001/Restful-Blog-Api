@@ -16,6 +16,45 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponseDTO> handleEmailAlreadyExists(
+            EmailAlreadyExistsException ex,
+            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponseDTO.builder()
+                        .status(409)
+                        .message(ex.getMessage())
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponseDTO> handleUsernameAlreadyExists(
+            UsernameAlreadyExistsException ex,
+            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponseDTO.builder()
+                        .status(409)
+                        .message(ex.getMessage())
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponseDTO> handleInvalidCredentials(
+            InvalidCredentialsException ex,
+            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponseDTO.builder()
+                        .status(401)
+                        .message(ex.getMessage())
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
     @ExceptionHandler(PostNotFoundException.class)
     public ResponseEntity<ErrorResponseDTO> handlePostNotFound(
             PostNotFoundException ex,
@@ -23,19 +62,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponseDTO.builder()
                         .status(404)
-                        .message(ex.getMessage())
-                        .path(request.getRequestURI())
-                        .timestamp(LocalDateTime.now())
-                        .build());
-    }
-
-    @ExceptionHandler(PostWithoutAuthorException.class)
-    public ResponseEntity<ErrorResponseDTO> handlePostWithoutAuthor(
-            PostWithoutAuthorException ex,
-            HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponseDTO.builder()
-                        .status(400)
                         .message(ex.getMessage())
                         .path(request.getRequestURI())
                         .timestamp(LocalDateTime.now())

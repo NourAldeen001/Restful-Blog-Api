@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,8 +28,6 @@ import java.util.List;
 public class PostRestController {
 
     private final PostService postService;
-
-    private final UserRepository userRepository;
 
     private final PostMapper postMapper;
 
@@ -72,15 +71,6 @@ public class PostRestController {
 
     }
 
-//    @GetMapping("/posts")
-//    public ResponseEntity<List<PostDTO>> getAllPosts() {
-//        List<PostDTO> posts = postService.getAllPosts()
-//                .stream()
-//                .map(postMapper::toPostDTO)
-//                .toList();
-//        return ResponseEntity.ok(posts);
-//    }
-
     @GetMapping("/posts/{id}")
     public ResponseEntity<PostDTO> getPostById(@PathVariable("id") Long theId) {
         PostDTO post = postMapper.toPostDTO(postService.getPostById(theId));
@@ -88,15 +78,12 @@ public class PostRestController {
     }
 
     @PostMapping("/posts")
-    public ResponseEntity<PostDTO> addPost(@Valid @RequestBody CreatePostRequest createPostRequest) {
+    public ResponseEntity<PostDTO> addPost(@Valid @RequestBody CreatePostRequest createPostRequest,
+                                           @AuthenticationPrincipal User currentUser) {
 
         Post post = postMapper.toEntity(createPostRequest);
 
-        // Adding Temporary User For Testing
-        User testAuthor = userRepository.findById(1L)
-                        .orElseThrow(() -> new RuntimeException("Test User not found"));
-        testAuthor.setId(1L);
-        post.setAuthor(testAuthor);
+        post.setAuthor(currentUser);
 
         Post saved = postService.addPost(post);
         return ResponseEntity
