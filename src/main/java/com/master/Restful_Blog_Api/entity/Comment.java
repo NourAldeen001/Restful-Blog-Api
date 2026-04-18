@@ -43,7 +43,7 @@ public class Comment {
             fetch = FetchType.LAZY,
             cascade = {
                     CascadeType.DETACH, CascadeType.MERGE,  /// When delete comment, Don't delete post
-                    CascadeType.PERSIST, CascadeType.REFRESH
+                    CascadeType.REFRESH
             }
     )
     /// refers to (post_id) column in comment Table
@@ -54,7 +54,7 @@ public class Comment {
             fetch = FetchType.LAZY,
             cascade = {
                     CascadeType.DETACH, CascadeType.MERGE,  /// When delete comment, Don't delete author
-                    CascadeType.PERSIST, CascadeType.REFRESH
+                    CascadeType.REFRESH
             }
     )
     /// refers to (user_id) column in comment Table

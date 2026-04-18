@@ -43,7 +43,7 @@ public class Post {
             fetch = FetchType.LAZY,
             cascade = {
                     CascadeType.DETACH, CascadeType.MERGE,  /// When delete post, Don't delete author
-                    CascadeType.PERSIST, CascadeType.REFRESH
+                    CascadeType.REFRESH
             }
     )
     /// refers to (user_id) column in post Table
