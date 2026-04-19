@@ -7,7 +7,7 @@ import com.master.Restful_Blog_Api.dto.UpdatePostRequest;
 import com.master.Restful_Blog_Api.entity.Post;
 import com.master.Restful_Blog_Api.entity.User;
 import com.master.Restful_Blog_Api.mapper.PostMapper;
-import com.master.Restful_Blog_Api.repository.UserRepository;
+import com.master.Restful_Blog_Api.service.AuthorizationService;
 import com.master.Restful_Blog_Api.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +30,8 @@ public class PostRestController {
     private final PostService postService;
 
     private final PostMapper postMapper;
+
+    private final AuthorizationService authorizationService;
 
 
     @GetMapping("/posts")
@@ -93,14 +95,20 @@ public class PostRestController {
 
     @PutMapping("/posts/{id}")
     public ResponseEntity<PostDTO> updatePostById(@PathVariable("id") Long theId,
-                                                  @Valid @RequestBody UpdatePostRequest updatePostRequest) {
+                                                  @Valid @RequestBody UpdatePostRequest updatePostRequest,
+                                                  @AuthenticationPrincipal User currentUser) {
+        Post existingPost = postService.getPostById(theId);
+        authorizationService.checkPostOwnership(existingPost, currentUser);
         Post post = postMapper.toEntity(updatePostRequest);
         Post updated = postService.updatePostById(theId, post);
         return ResponseEntity.ok(postMapper.toPostDTO(updated));
     }
 
     @DeleteMapping("/posts/{id}")
-    public ResponseEntity<Void> deletePostById(@PathVariable("id") Long theId) {
+    public ResponseEntity<Void> deletePostById(@PathVariable("id") Long theId,
+                                               @AuthenticationPrincipal User currentUser) {
+        Post existingPost = postService.getPostById(theId);
+        authorizationService.checkPostOwnership(existingPost, currentUser);
         postService.deletePostById(theId);
         return ResponseEntity.noContent().build();
     }

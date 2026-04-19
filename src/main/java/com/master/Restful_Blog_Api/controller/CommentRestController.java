@@ -9,6 +9,7 @@ import com.master.Restful_Blog_Api.entity.Post;
 import com.master.Restful_Blog_Api.entity.User;
 import com.master.Restful_Blog_Api.exception.CommentNotBelongsToPostException;
 import com.master.Restful_Blog_Api.mapper.CommentMapper;
+import com.master.Restful_Blog_Api.service.AuthorizationService;
 import com.master.Restful_Blog_Api.service.CommentService;
 import com.master.Restful_Blog_Api.service.PostService;
 import jakarta.validation.Valid;
@@ -34,6 +35,8 @@ public class CommentRestController {
     private final CommentMapper commentMapper;
 
     private final PostService postService;
+
+    private final AuthorizationService authorizationService;
 
     @GetMapping("/{postId}/comments")
     public ResponseEntity<PagedResponse<CommentDTO>> getAllComments(@PathVariable Long postId,
@@ -114,7 +117,8 @@ public class CommentRestController {
     @PutMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<CommentDTO> updateComment(@PathVariable Long postId,
                                                     @PathVariable Long commentId,
-                                                    @Valid @RequestBody UpdateCommentRequest updateCommentRequest) {
+                                                    @Valid @RequestBody UpdateCommentRequest updateCommentRequest,
+                                                    @AuthenticationPrincipal User currentUser) {
         // Verify post exists
         postService.getPostById(postId);
 
@@ -124,6 +128,8 @@ public class CommentRestController {
             throw new CommentNotBelongsToPostException(commentId, postId);
         }
 
+        authorizationService.checkCommentOwnership(comment, currentUser);
+
         Comment newComment = commentMapper.toEntity(updateCommentRequest);
         Comment updated = commentService.updateComment(commentId, newComment);
 
@@ -132,7 +138,8 @@ public class CommentRestController {
 
     @DeleteMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(@PathVariable Long postId,
-                                              @PathVariable Long commentId) {
+                                              @PathVariable Long commentId,
+                                              @AuthenticationPrincipal User currentUser) {
 
         // Verify post exists
         postService.getPostById(postId);
@@ -142,6 +149,8 @@ public class CommentRestController {
         if(!comment.getPost().getId().equals(postId)) {
             throw new CommentNotBelongsToPostException(commentId, postId);
         }
+
+        authorizationService.checkCommentOwnership(comment, currentUser);
 
         commentService.deleteComment(commentId);
 

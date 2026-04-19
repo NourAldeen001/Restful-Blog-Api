@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,6 +51,32 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponseDTO.builder()
                         .status(401)
                         .message(ex.getMessage())
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponseDTO> handleForbidden(
+            ForbiddenException ex,
+            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponseDTO.builder()
+                        .status(403)
+                        .message(ex.getMessage())
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAccessDenied(
+            AccessDeniedException ex,
+            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponseDTO.builder()
+                        .status(403)
+                        .message("Access denied: You don't have permission to access this resource")
                         .path(request.getRequestURI())
                         .timestamp(LocalDateTime.now())
                         .build());
