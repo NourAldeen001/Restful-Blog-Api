@@ -7,11 +7,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CommentServiceImpl implements  CommentService {
 
     private final CommentRepository commentRepository;
@@ -28,11 +30,13 @@ public class CommentServiceImpl implements  CommentService {
     }
 
     @Override
+    @Transactional
     public Comment addComment(Comment comment) {
         return commentRepository.save(comment);
     }
 
     @Override
+    @Transactional
     public Comment updateComment(Long id, Comment newComment) {
         Comment comment = getCommentById(id);
         comment.setContent(newComment.getContent());
@@ -40,6 +44,7 @@ public class CommentServiceImpl implements  CommentService {
     }
 
     @Override
+    @Transactional
     public void deleteComment(Long id) {
         Comment comment = getCommentById(id);
         commentRepository.delete(comment);

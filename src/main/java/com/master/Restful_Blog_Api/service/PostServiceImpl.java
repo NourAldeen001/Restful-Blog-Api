@@ -8,11 +8,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
@@ -28,6 +30,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
     public Post addPost(Post post) {
         if(post.getAuthor() == null) {
             throw new PostWithoutAuthorException();
@@ -47,6 +50,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
     public Post updatePostById(long id, Post newPost) {
         Post thePost = getPostById(id);
         thePost.setTitle(newPost.getTitle());
@@ -55,6 +59,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
     public void deletePostById(long theId) {
         Post thePost = getPostById(theId);
         postRepository.delete(thePost);
