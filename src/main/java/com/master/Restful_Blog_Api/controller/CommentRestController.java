@@ -1,9 +1,6 @@
 package com.master.Restful_Blog_Api.controller;
 
-import com.master.Restful_Blog_Api.dto.CommentDTO;
-import com.master.Restful_Blog_Api.dto.CreateCommentRequest;
-import com.master.Restful_Blog_Api.dto.PagedResponse;
-import com.master.Restful_Blog_Api.dto.UpdateCommentRequest;
+import com.master.Restful_Blog_Api.dto.*;
 import com.master.Restful_Blog_Api.entity.Comment;
 import com.master.Restful_Blog_Api.entity.Post;
 import com.master.Restful_Blog_Api.entity.User;
@@ -97,9 +94,9 @@ public class CommentRestController {
 
 
     @PostMapping("/{postId}/comments")
-    public ResponseEntity<CommentDTO> addComment(@PathVariable Long postId,
-                                                 @Valid @RequestBody CreateCommentRequest createCommentRequest,
-                                                 @AuthenticationPrincipal User currentUser){
+    public ResponseEntity<ApiResponse<CommentDTO>> addComment(@PathVariable Long postId,
+                                                             @Valid @RequestBody CreateCommentRequest createCommentRequest,
+                                                             @AuthenticationPrincipal User currentUser){
 
         Post post = postService.getPostById(postId);
 
@@ -111,11 +108,11 @@ public class CommentRestController {
         Comment saved = commentService.addComment(comment);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(commentMapper.toCommentDTO(saved));
+                .body(ApiResponse.created("Comment added successfully", commentMapper.toCommentDTO(saved)));
     }
 
     @PutMapping("/{postId}/comments/{commentId}")
-    public ResponseEntity<CommentDTO> updateComment(@PathVariable Long postId,
+    public ResponseEntity<ApiResponse<CommentDTO>> updateComment(@PathVariable Long postId,
                                                     @PathVariable Long commentId,
                                                     @Valid @RequestBody UpdateCommentRequest updateCommentRequest,
                                                     @AuthenticationPrincipal User currentUser) {
@@ -133,11 +130,11 @@ public class CommentRestController {
         Comment newComment = commentMapper.toEntity(updateCommentRequest);
         Comment updated = commentService.updateComment(commentId, newComment);
 
-        return ResponseEntity.ok(commentMapper.toCommentDTO(updated));
+        return ResponseEntity.ok(ApiResponse.ok("Comment updated successfully", commentMapper.toCommentDTO(updated)));
     }
 
     @DeleteMapping("/{postId}/comments/{commentId}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long postId,
+    public ResponseEntity<ApiResponse<Void>> deleteComment(@PathVariable Long postId,
                                               @PathVariable Long commentId,
                                               @AuthenticationPrincipal User currentUser) {
 
@@ -154,6 +151,6 @@ public class CommentRestController {
 
         commentService.deleteComment(commentId);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.deleted("Comment deleted successfully"));
     }
 }

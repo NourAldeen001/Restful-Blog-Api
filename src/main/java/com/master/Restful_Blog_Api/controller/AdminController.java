@@ -1,5 +1,6 @@
 package com.master.Restful_Blog_Api.controller;
 
+import com.master.Restful_Blog_Api.dto.ApiResponse;
 import com.master.Restful_Blog_Api.dto.PagedResponse;
 import com.master.Restful_Blog_Api.dto.UserDTO;
 import com.master.Restful_Blog_Api.entity.User;
@@ -12,13 +13,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -74,10 +72,10 @@ public class AdminController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable("id") Long userId,
-                                           @AuthenticationPrincipal User currentUser) {
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable("id") Long userId,
+                                                       @AuthenticationPrincipal User currentUser) {
         userService.deleteUser(userId, currentUser.getEmail());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.deleted("User deleted successfully"));
     }
 
 }

@@ -1,9 +1,6 @@
 package com.master.Restful_Blog_Api.controller;
 
-import com.master.Restful_Blog_Api.dto.CreatePostRequest;
-import com.master.Restful_Blog_Api.dto.PagedResponse;
-import com.master.Restful_Blog_Api.dto.PostDTO;
-import com.master.Restful_Blog_Api.dto.UpdatePostRequest;
+import com.master.Restful_Blog_Api.dto.*;
 import com.master.Restful_Blog_Api.entity.Post;
 import com.master.Restful_Blog_Api.entity.User;
 import com.master.Restful_Blog_Api.mapper.PostMapper;
@@ -80,8 +77,8 @@ public class PostRestController {
     }
 
     @PostMapping("/posts")
-    public ResponseEntity<PostDTO> addPost(@Valid @RequestBody CreatePostRequest createPostRequest,
-                                           @AuthenticationPrincipal User currentUser) {
+    public ResponseEntity<ApiResponse<PostDTO>> addPost(@Valid @RequestBody CreatePostRequest createPostRequest,
+                                                       @AuthenticationPrincipal User currentUser) {
 
         Post post = postMapper.toEntity(createPostRequest);
 
@@ -90,26 +87,26 @@ public class PostRestController {
         Post saved = postService.addPost(post);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(postMapper.toPostDTO(saved));
+                .body(ApiResponse.created("Post added successfully", postMapper.toPostDTO(saved)));
     }
 
     @PutMapping("/posts/{id}")
-    public ResponseEntity<PostDTO> updatePostById(@PathVariable("id") Long theId,
+    public ResponseEntity<ApiResponse<PostDTO>> updatePostById(@PathVariable("id") Long theId,
                                                   @Valid @RequestBody UpdatePostRequest updatePostRequest,
                                                   @AuthenticationPrincipal User currentUser) {
         Post existingPost = postService.getPostById(theId);
         authorizationService.checkPostOwnership(existingPost, currentUser);
         Post post = postMapper.toEntity(updatePostRequest);
         Post updated = postService.updatePostById(theId, post);
-        return ResponseEntity.ok(postMapper.toPostDTO(updated));
+        return ResponseEntity.ok(ApiResponse.ok("Post updated successfully", postMapper.toPostDTO(updated)));
     }
 
     @DeleteMapping("/posts/{id}")
-    public ResponseEntity<Void> deletePostById(@PathVariable("id") Long theId,
+    public ResponseEntity<ApiResponse<Void>> deletePostById(@PathVariable("id") Long theId,
                                                @AuthenticationPrincipal User currentUser) {
         Post existingPost = postService.getPostById(theId);
         authorizationService.checkPostOwnership(existingPost, currentUser);
         postService.deletePostById(theId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.deleted("Post deleted successfully"));
     }
 }
