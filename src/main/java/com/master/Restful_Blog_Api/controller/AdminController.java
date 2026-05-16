@@ -7,6 +7,7 @@ import com.master.Restful_Blog_Api.entity.User;
 import com.master.Restful_Blog_Api.mapper.UserMapper;
 import com.master.Restful_Blog_Api.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@Slf4j
 public class AdminController {
 
     private final UserService userService;
@@ -35,7 +37,8 @@ public class AdminController {
                                                               @RequestParam(defaultValue = "desc") String sortDir,
                                                               @RequestParam(required = false) String search,
                                                               @AuthenticationPrincipal User currentUser) {
-
+        log.info("Admin listing users: requestedBy={}, page={}, sizs={}, search={}",
+                currentUser.getUsername(), page, size, search);
         Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
@@ -58,7 +61,7 @@ public class AdminController {
                 .last(userPage.isLast())
                 .empty(userPage.isEmpty())
                 .build();
-
+        log.debug("Admin users fetched: totalElements={}", userPage.getTotalElements());
         return ResponseEntity.ok(response);
 
     }
@@ -66,6 +69,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users/{id}")
     public ResponseEntity<UserDTO> getUserById(@PathVariable("id") Long userId) {
+        log.info("Admin fetching user: targetUserId={}", userId);
         UserDTO userDTO = userMapper.toUserDTO(userService.getUserById(userId));
         return ResponseEntity.ok(userDTO);
     }
@@ -74,7 +78,9 @@ public class AdminController {
     @DeleteMapping("/users/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable("id") Long userId,
                                                        @AuthenticationPrincipal User currentUser) {
+        log.info("Admin delete user request: targetUserId={}, requestedBy={}", userId, currentUser.getId());
         userService.deleteUser(userId, currentUser.getEmail());
+        log.info("User deleted successfully: targetUserId={}, deletedBy={}", userId, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.deleted("User deleted successfully"));
     }
 

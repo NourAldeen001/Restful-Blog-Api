@@ -2,6 +2,7 @@ package com.master.Restful_Blog_Api.exception;
 
 import com.master.Restful_Blog_Api.dto.ErrorResponseDTO;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -16,12 +17,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ErrorResponseDTO> handleEmailAlreadyExists(
             EmailAlreadyExistsException ex,
             HttpServletRequest request) {
+        log.warn("Registration conflict - email already exists: {}", ex.getMessage());
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
@@ -29,6 +32,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleUsernameAlreadyExists(
             UsernameAlreadyExistsException ex,
             HttpServletRequest request) {
+        log.warn("Registration conflict - username already exists: {}", ex.getMessage());
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
@@ -36,6 +40,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleInvalidCredentials(
             InvalidCredentialsException ex,
             HttpServletRequest request) {
+        log.warn("Authentication failed: {} | path={}", ex.getMessage(), request.getRequestURI());
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
@@ -43,13 +48,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleForbidden(
             ForbiddenException ex,
             HttpServletRequest request) {
+        log.warn("Forbidden access: {} | path={}", ex.getMessage(), request.getRequestURI());
         return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponseDTO> handleAccessDenied(
-            AccessDeniedException ex,
             HttpServletRequest request) {
+        log.warn("Access denied by @PreAuthorize: path={}", request.getRequestURI());
         return build(HttpStatus.FORBIDDEN,
                 "Access denied: You don't have permission to access this resource",
                 request);
@@ -59,6 +65,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleUserNotFound(
             UserNotFoundException ex,
             HttpServletRequest request) {
+        log.warn("User not found: {}", ex.getMessage());
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
@@ -66,6 +73,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handlePostNotFound(
             PostNotFoundException ex,
             HttpServletRequest request) {
+        log.warn("Post not found: {}", ex.getMessage());
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
@@ -73,6 +81,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleCommentNotFound(
             CommentNotFoundException ex,
             HttpServletRequest request) {
+        log.warn("Comment not found: {}", ex.getMessage());
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
@@ -80,6 +89,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleCommentNotBelongsToPost(
             CommentNotBelongsToPostException ex,
             HttpServletRequest request) {
+        log.warn("Bad request - comment/post mismatch: {}", ex.getMessage());
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
@@ -87,6 +97,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleCommentNotBelongsToPost(
             PostWithoutAuthorException ex,
             HttpServletRequest request) {
+        log.warn("Bad request - Post without author attempted: {}", ex.getMessage());
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
@@ -96,7 +107,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex,
             HttpServletRequest request) {
 
-        Map<String, String> errors = ex.getBindingResult()
+        Map<String, String> fieldErrors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .collect(Collectors.toMap(
@@ -108,10 +119,12 @@ public class GlobalExceptionHandler {
                         (existing, duplicate) -> existing
                 ));
 
+        log.warn("Validation failed on {}: {}", request.getRequestURI(), fieldErrors);
+
         Map<String, Object> response = new HashMap<>();
         response.put("status", 400);
         response.put("message", "Validation failed");
-        response.put("errors", errors);
+        response.put("errors", fieldErrors);
         response.put("path", request.getRequestURI());
         response.put("timestamp", LocalDateTime.now());
 
@@ -123,6 +136,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleUnexpected(
             Exception ex,
             HttpServletRequest request) {
+        log.error("Unexpected error on {}: {} - {}", request.getRequestURI(),
+                ex.getClass().getSimpleName(), ex.getMessage(), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred. Please try again later.",
                 request);

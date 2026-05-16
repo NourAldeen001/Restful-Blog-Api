@@ -7,6 +7,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,8 +20,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+@Order(2)
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -36,30 +40,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = getJwtFromRequestHeader(request);
 
             if(StringUtils.hasText(token)) {
+                log.debug("JWT token found in request: path={}", request.getRequestURI());
                 // Extract email (Signature is validated secretly)
                 String email = jwtTokenProvider.getEmailFromToken(token);
                 // check expire & email match
                 if(jwtTokenProvider.validateToken(token, email)) {
-
                     User user = userRepository.findByEmail(email).orElse(null);
+                    if (user == null) {
+                        log.warn("Valid JWT but user not found in DB: email={}", email);
+                    } else {
+                        UsernamePasswordAuthenticationToken authToken =
+                                new UsernamePasswordAuthenticationToken(
+                                        user,
+                                        null, // Credentials (not needed after authentication)
+                                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                                );
 
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    user,
-                                    null, // Credentials (not needed after authentication)
-                                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-                            );
+                        authToken.setDetails(
+                                new WebAuthenticationDetailsSource().buildDetails(request)
+                        );
 
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
-
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                        log.debug("Authentication set: email={}, role={}, path={}",
+                                email, user.getRole(), request.getRequestURI());
+                    }
                 }
             }
         }
         catch(Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+            // Could not set user authentication in security context
+            log.warn("Failed to set authentication for request {}: {}",
+                    request.getRequestURI(), ex.getMessage());
         }
 
         filterChain.doFilter(request, response);

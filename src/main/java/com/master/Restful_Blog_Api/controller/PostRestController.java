@@ -8,6 +8,7 @@ import com.master.Restful_Blog_Api.service.AuthorizationService;
 import com.master.Restful_Blog_Api.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Slf4j
 public class PostRestController {
 
     private final PostService postService;
@@ -37,6 +39,9 @@ public class PostRestController {
                                                               @RequestParam(defaultValue = "createdAt") String sortBy,
                                                               @RequestParam(defaultValue = "desc") String sortDir,
                                                               @RequestParam(required = false) String search) {
+        // DEBUG: Useful during development but too noisy for production
+        log.debug("Fetching posts: page={}, size={}, sortBy={}, sortDir={}, search={}",
+                page, size, sortBy, sortDir, search);
 
         // Build Sort
         Sort sort = sortDir.equalsIgnoreCase("asc")
@@ -66,12 +71,15 @@ public class PostRestController {
                 .empty(postPage.isEmpty())
                 .build();
 
+        log.debug("Posts fetched: totalElements={}, totalPages={}", postPage.getTotalElements(), postPage.getTotalPages());
+
         return ResponseEntity.ok(response);
 
     }
 
     @GetMapping("/posts/{id}")
     public ResponseEntity<PostDTO> getPostById(@PathVariable("id") Long theId) {
+        log.debug("Fetching post by id={}", theId);
         PostDTO post = postMapper.toPostDTO(postService.getPostById(theId));
         return ResponseEntity.ok(post);
     }
@@ -79,12 +87,13 @@ public class PostRestController {
     @PostMapping("/posts")
     public ResponseEntity<ApiResponse<PostDTO>> addPost(@Valid @RequestBody CreatePostRequest createPostRequest,
                                                        @AuthenticationPrincipal User currentUser) {
-
+        log.info("Create post request: title={}, author={}", createPostRequest.getTitle(), currentUser.getUsername());
         Post post = postMapper.toEntity(createPostRequest);
 
         post.setAuthor(currentUser);
 
         Post saved = postService.addPost(post);
+        log.info("Post created successfully: postId={}, title={}, author={}", saved.getId(), saved.getTitle(), currentUser.getUsername());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Post added successfully", postMapper.toPostDTO(saved)));
@@ -94,19 +103,23 @@ public class PostRestController {
     public ResponseEntity<ApiResponse<PostDTO>> updatePostById(@PathVariable("id") Long theId,
                                                   @Valid @RequestBody UpdatePostRequest updatePostRequest,
                                                   @AuthenticationPrincipal User currentUser) {
+        log.info("Update post request: postId={}, requestedBy={}", theId, currentUser.getUsername());
         Post existingPost = postService.getPostById(theId);
         authorizationService.checkPostOwnership(existingPost, currentUser);
         Post post = postMapper.toEntity(updatePostRequest);
         Post updated = postService.updatePostById(theId, post);
+        log.info("Post updated successfully: postId={}, updatedBy={}", theId, currentUser.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("Post updated successfully", postMapper.toPostDTO(updated)));
     }
 
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<ApiResponse<Void>> deletePostById(@PathVariable("id") Long theId,
                                                @AuthenticationPrincipal User currentUser) {
+        log.info("Delete post request: postId={}, requestedBy={}", theId, currentUser.getUsername());
         Post existingPost = postService.getPostById(theId);
         authorizationService.checkPostOwnership(existingPost, currentUser);
         postService.deletePostById(theId);
+        log.info("Post deleted successfully: postId={}, deletedBy={}", theId, currentUser.getUsername());
         return ResponseEntity.ok(ApiResponse.deleted("Post deleted successfully"));
     }
 }
