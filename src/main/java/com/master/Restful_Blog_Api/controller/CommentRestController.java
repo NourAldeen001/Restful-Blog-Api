@@ -11,6 +11,7 @@ import com.master.Restful_Blog_Api.service.CommentService;
 import com.master.Restful_Blog_Api.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
+@Slf4j
 public class CommentRestController {
 
     private final CommentService commentService;
@@ -41,6 +43,7 @@ public class CommentRestController {
                                                                     @RequestParam(defaultValue = "10") int size,
                                                                     @RequestParam(defaultValue = "createdAt") String sortBy,
                                                                     @RequestParam(defaultValue = "desc") String sortDir) {
+        log.debug("Fetching comments: postId={}, page={}, size={}", postId, page, size);
         // Verify post exists
         postService.getPostById(postId);
 
@@ -69,6 +72,7 @@ public class CommentRestController {
                 .last(commentPage.isLast())
                 .empty(commentPage.isEmpty())
                 .build();
+        log.debug("Comments fetched: totalElements={}, totalPages={}", commentPage.getTotalElements(), commentPage.getTotalPages());
 
         return ResponseEntity.ok(response);
     }
@@ -77,6 +81,7 @@ public class CommentRestController {
     @GetMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<CommentDTO> getCommentById(@PathVariable Long postId,
                                                      @PathVariable Long commentId) {
+        log.debug("Fetching comment: commentId={}, postId={}", commentId, postId);
 
         // Verify post exists
         postService.getPostById(postId);
@@ -86,6 +91,7 @@ public class CommentRestController {
 
         // Verify comment belongs to this post
         if(!comment.getPost().getId().equals(postId)) {
+            log.warn("Comment does not belong to post: commentId={}, postId={}", commentId, postId);
             throw new CommentNotBelongsToPostException(commentId, postId);
         }
 
@@ -97,7 +103,7 @@ public class CommentRestController {
     public ResponseEntity<ApiResponse<CommentDTO>> addComment(@PathVariable Long postId,
                                                              @Valid @RequestBody CreateCommentRequest createCommentRequest,
                                                              @AuthenticationPrincipal User currentUser){
-
+        log.info("Add comment request: postId={}, author={}", postId, currentUser.getUsername());
         Post post = postService.getPostById(postId);
 
         Comment comment = commentMapper.toEntity(createCommentRequest);
@@ -106,7 +112,8 @@ public class CommentRestController {
         comment.setAuthor(currentUser);
 
         Comment saved = commentService.addComment(comment);
-
+        log.info("Comment added successfully: commentId={}, postId={}, author={}",
+                saved.getId(), postId, currentUser.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Comment added successfully", commentMapper.toCommentDTO(saved)));
     }
@@ -116,12 +123,15 @@ public class CommentRestController {
                                                     @PathVariable Long commentId,
                                                     @Valid @RequestBody UpdateCommentRequest updateCommentRequest,
                                                     @AuthenticationPrincipal User currentUser) {
+        log.info("Update comment request: commentId={}, postId={}, requestedBy={}",
+                commentId, postId, currentUser.getUsername());
         // Verify post exists
         postService.getPostById(postId);
 
         // Verify comment exists and belongs to post
         Comment comment = commentService.getCommentById(commentId);
         if(!comment.getPost().getId().equals(postId)) {
+            log.warn("Comment does not belong to post: commentId={}, postId={}", commentId, postId);
             throw new CommentNotBelongsToPostException(commentId, postId);
         }
 
@@ -130,6 +140,8 @@ public class CommentRestController {
         Comment newComment = commentMapper.toEntity(updateCommentRequest);
         Comment updated = commentService.updateComment(commentId, newComment);
 
+        log.info("Comment updated successfully: commentId={}, updatedBy={}", commentId, currentUser.getUsername());
+
         return ResponseEntity.ok(ApiResponse.ok("Comment updated successfully", commentMapper.toCommentDTO(updated)));
     }
 
@@ -137,19 +149,22 @@ public class CommentRestController {
     public ResponseEntity<ApiResponse<Void>> deleteComment(@PathVariable Long postId,
                                               @PathVariable Long commentId,
                                               @AuthenticationPrincipal User currentUser) {
-
+        log.info("Delete comment request: commentId={}, postId={}, requestedBy={}",
+                commentId, postId, currentUser.getUsername());
         // Verify post exists
         postService.getPostById(postId);
 
         // Verify comment exists and belongs to this post
         Comment comment = commentService.getCommentById(commentId);
         if(!comment.getPost().getId().equals(postId)) {
+            log.warn("Comment does not belong to post: commentId={}, postId={}", commentId, postId);
             throw new CommentNotBelongsToPostException(commentId, postId);
         }
 
         authorizationService.checkCommentOwnership(comment, currentUser);
 
         commentService.deleteComment(commentId);
+        log.info("Comment deleted successfully: commentId={}, deletedBy={}", postId, currentUser.getUsername());
 
         return ResponseEntity.ok(ApiResponse.deleted("Comment deleted successfully"));
     }

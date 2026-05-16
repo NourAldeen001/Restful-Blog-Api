@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="blog-api"/>
+
+    <!-- Log file directory -->
+    <property name="LOG_DIR" value="logs"/>
+    <!-- Patterns -->
+    <property name="CONSOLE_PATTERN" value="%d{HH:mm:ss.SSS} [%thread] %-5level %logger{50} %X{requestId} - %msg%n"/>
+    <property name="FILE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} %X{requestId} - %msg%n"/>
+
+    <!-- Appender 1: Console -->
+    <!--  Writes logs to stdout (your terminal / IDE console).
+        Used in development. Should be disabled in production to save CPU.
+    -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Appender 2: Rolling File -->
+    <!--
+            Writes logs to a file. Automatically rotates:
+              - Daily: a new file is created each day
+              - Size:  if today's file exceeds 50MB, a new file starts
+              - History: keeps only last 30 days of files
+              - Total cap: never uses more than 1GB of disk space
+
+            Files will look like:
+              logs/blog-api.log              ← today's active file
+              logs/blog-api.2025-01-14.log   ← yesterday's rotated file
+        -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${APP_NAME}</file>
+        <!-- TimeBasedRollingPolicy deprecated-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/${APP_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Appender 3: Async File (wraps the File Appender) -->
+    <!--
+        ASYNC logging = your application doesn't wait for the disk write.
+        Without async: request finishes → wait for file write → respond to user.
+        With async:    request finishes → put log in queue → respond to user immediately.
+                       A background thread drains the queue and writes to disk.
+
+        Use this in production for better throughput.
+        queueSize: how many log events to buffer (default 256)
+        discardingThreshold: if queue is 80% full, DROP DEBUG/TRACE (keep WARN/ERROR)
+    -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>20</discardingThreshold>
+        <!-- Don't lose logs on app shutdown — drain the queue first -->
+        <neverBlock>false</neverBlock>
+    </appender>
+
+    <!-- Package-level Loggers -->
+    <!--
+        These override the root level for specific packages.
+        Your application code logs at DEBUG in dev (controlled by springProfile below).
+        But noisy third-party libraries are capped at WARN always.
+    -->
+
+    <!-- Hibernate SQL: set to DEBUG only when you need to see actual SQL queries -->
+    <!-- Change to DEBUG temporarily if you're debugging a query issue -->
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.orm.jdbc.bind" level="WARN"/>
+
+    <!-- Spring Security: only show warnings (auth failures, access denied) -->
+    <logger name="org.springframework.security" level="WARN"/>
+
+    <!-- Spring Web: only show warnings -->
+    <logger name="org.springframework.web" level="WARN"/>
+
+    <!-- Your application: always allowed to go to DEBUG (profile controls root) -->
+    <logger name="com.master.Restful_Blog_Api" level="DEBUG"/>
+
+
+    <!-- Profile: dev -->
+    <!--
+        Active when: spring.profiles.active=dev  (or no profile set)
+
+        - Root level DEBUG: you see everything from your code
+        - Console only: no log files during development
+        - Hibernate SQL at DEBUG: see the actual SQL queries being generated
+    -->
+
+    <springProfile name="dev">
+
+        <!-- In dev, show Hibernate SQL for debugging -->
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.orm.jdbc.bind" level="DEBUG"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- Profile: prod -->
+    <!--
+       Active when: spring.profiles.active=prod
+
+       - Root level INFO: no DEBUG noise in production
+       - ASYNC_FILE only: no console output (saves CPU, logs go to disk)
+       - Hibernate SQL stays at WARN: never log SQL in production
+   -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_FILE"/>
+        </root>
+    </springProfile>
+
+    <!-- Fallback (no profile set) -->
+    <!--
+        If you run without setting a profile, use console at INFO.
+        This prevents accidental silent logging.
+    -->
+    <springProfile name="!dev &amp; !prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+</configuration>
